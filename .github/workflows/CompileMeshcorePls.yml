@@ -5,16 +5,15 @@ on:
     branches: [ "main", "master" ]
   pull_request:
     branches: [ "main", "master" ]
-  workflow_dispatch: # Allows you to run this manually from the Actions tab
+  workflow_dispatch: # Allows manual trigger from the GitHub Actions tab
 
 jobs:
   build-firmware:
     runs-on: ubuntu-latest
     strategy:
-      fail-fast: false # If one variant fails, keep building the others
+      fail-fast: false # Keep building other variants even if one fails
       matrix:
         environment: 
-          # These must perfectly match the [env:...] headers in your platformio.ini
           - nibble_zero_connect_repeater
           - nibble_zero_connect_repeater_bridge_espnow
           - nibble_zero_connect_terminal_chat
@@ -27,7 +26,7 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v4
         with:
-          submodules: recursive # Crucial if MeshLib is included as a submodule
+          submodules: recursive # Essential if MeshLib is a submodule
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -50,7 +49,6 @@ jobs:
           pip install platformio
 
       - name: Compile Environment (${{ matrix.environment }})
-        # This triggers the build_src_filter to pull from your ../variants/nibble_zero_connect folder
         run: pio run -e ${{ matrix.environment }}
 
       - name: Upload Firmware Artifact
