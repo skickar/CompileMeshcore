@@ -5,13 +5,13 @@ on:
     branches: [ "main", "master" ]
   pull_request:
     branches: [ "main", "master" ]
-  workflow_dispatch: # Allows manual trigger from the GitHub Actions tab
+  workflow_dispatch:
 
 jobs:
   build-firmware:
     runs-on: ubuntu-latest
     strategy:
-      fail-fast: false # Keep building other variants even if one fails
+      fail-fast: false
       matrix:
         environment: 
           - nibble_zero_connect_repeater
@@ -23,23 +23,42 @@ jobs:
           - nibble_zero_connect_companion_radio_wifi
 
     steps:
-      - name: Checkout Repository
+      # 1. Download your blank repo (with your custom configs) into a folder called 'custom_repo'
+      - name: Checkout Custom Configs
         uses: actions/checkout@v4
         with:
-          submodules: recursive # Essential if MeshLib is a submodule
+          path: custom_repo
 
+      # 2. Download the core Meshcore source code into a folder called 'meshcore_src'
+      - name: Checkout Core Meshcore
+        uses: actions/checkout@v4
+        with:
+          repository: liamcottle/REPLACE-WITH-ACTUAL-REPO # <-- ADD THE MESHCORE REPO NAME HERE
+          path: meshcore_src
+          submodules: recursive
+
+      # 3. Inject your custom Nibble code into the Meshcore source
+      - name: Inject Variant & Config
+        run: |
+          mkdir -p meshcore_src/variants
+          # Copy your Nibble Zero hardware definitions into the Meshcore variants folder
+          cp -r custom_repo/variants/nibble_zero_connect meshcore_src/variants/
+          # Overwrite the default platformio.ini with your custom one
+          cp custom_repo/platformio.ini meshcore_src/platformio.ini
+
+      # 4. Standard PlatformIO setup
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: '3.11'
 
-      - name: Cache PlatformIO Dependencies
+      - name: Cache PlatformIO
         uses: actions/cache@v4
         with:
           path: |
             ~/.platformio
-            .pio
-          key: ${{ runner.os }}-pio-${{ hashFiles('**/platformio.ini') }}
+            meshcore_src/.pio
+          key: ${{ runner.os }}-pio-${{ hashFiles('custom_repo/platformio.ini') }}
           restore-keys: |
             ${{ runner.os }}-pio-
 
@@ -48,15 +67,18 @@ jobs:
           python -m pip install --upgrade pip
           pip install platformio
 
+      # 5. Tell PlatformIO to compile from INSIDE the meshcore folder where all the code now lives
       - name: Compile Environment (${{ matrix.environment }})
+        working-directory: ./meshcore_src
         run: pio run -e ${{ matrix.environment }}
 
+      # 6. Upload the final compiled binaries
       - name: Upload Firmware Artifact
         uses: actions/upload-artifact@v4
         with:
           name: Nibble_Zero_${{ matrix.environment }}
           path: |
-            .pio/build/${{ matrix.environment }}/firmware.bin
-            .pio/build/${{ matrix.environment }}/partitions.bin
-            .pio/build/${{ matrix.environment }}/bootloader.bin
+            meshcore_src/.pio/build/${{ matrix.environment }}/firmware.bin
+            meshcore_src/.pio/build/${{ matrix.environment }}/partitions.bin
+            meshcore_src/.pio/build/${{ matrix.environment }}/bootloader.bin
           retention-days: 7
