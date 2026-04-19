@@ -33,7 +33,7 @@ jobs:
       - name: Checkout Core Meshcore
         uses: actions/checkout@v4
         with:
-          repository: liamcottle/REPLACE-WITH-ACTUAL-REPO # <-- ADD THE MESHCORE REPO NAME HERE
+          repository: meshcore-dev/MeshCore
           path: meshcore_src
           submodules: recursive
 
