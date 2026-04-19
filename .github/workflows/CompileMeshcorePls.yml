@@ -43,8 +43,8 @@ jobs:
           mkdir -p meshcore_src/variants
           # Copy your Nibble Zero hardware definitions into the Meshcore variants folder
           cp -r custom_repo/variants/nibble_zero_connect meshcore_src/variants/
-          # Overwrite the default platformio.ini with your custom one
-          cp custom_repo/platformio.ini meshcore_src/platformio.ini
+          # APPEND your custom platformio.ini to the bottom of the official one
+          cat custom_repo/platformio.ini >> meshcore_src/platformio.ini
 
       # 4. Standard PlatformIO setup
       - name: Set up Python
